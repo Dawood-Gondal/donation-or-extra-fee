@@ -1,0 +1,159 @@
+<?php
+/**
+ * @category    M2Commerce Enterprise
+ * @package     M2Commerce_NewsletterPopup
+ * @copyright   Copyright (c) 2023 M2Commerce Enterprise
+ * @author      dawoodgondaldev@gmail.com
+ */
+
+/* @var \Magento\Newsletter\Block\Subscribe $block */
+/* @var \M2Commerce\NewsletterPopup\Helper\Data $helper */
+
+use M2Commerce\NewsletterPopup\Model\Config\NewsletterLogo;
+use M2Commerce\NewsletterPopup\Model\Config\NewsletterBg;
+
+$helper = $this->helper(\M2Commerce\NewsletterPopup\Helper\Data::class);
+
+$popup = $helper->getConfig('subscription/popup');
+if (isset($popup['enable']) && $popup['enable'] != 0) {
+    $delay = $popup["delay"]; ?>
+
+    <script type="text/javascript">
+        require([
+            'jquery',
+            'M2Commerce_NewsletterPopup/fancybox/js/jquery.cookie',
+            'M2Commerce_NewsletterPopup/fancybox/js/jquery.fancybox'
+        ], function ($) {
+            $(document).ready(function () {
+                // submit button
+                $('#newsletter-validate-popup-detail').submit(function (e) {
+                    if ($('#newsletter-validate-popup-detail').valid()) {
+                        let html = '<div class="messages"><div class="message message-success success">' +
+                            '<div data-ui-id="checkout-cart-validationmessages-message-success">"Thank you for your subscription."</div>' +
+                            '</div>';
+                        $("#show_message").html(html);
+                        $.cookie('newsletter_popup', 'dontShowItAgain');
+                    } else {
+                        $("#show_message").html('');
+                        $.cookie('newsletter_popup', 'shown');
+                    }
+                });
+
+                // close button
+                $(document).on('click', '#nl_close_btn', function () {
+                    $.cookie('newsletter_popup', 'dontShowItAgain');
+                });
+
+                <?php if($popup['enable'] == 1): ?>
+                if ($("body").hasClass("cms-index-index")) {
+                    <?php endif; ?>
+                    let checkCookie = $.cookie('newsletter_popup');
+                    if (window.location !== window.parent.location) {
+                        $('#newsletter_popup').remove();
+                    } else {
+                        if (checkCookie == null || checkCookie === 'shown') {
+                            setTimeout(function () {
+                                beginNewsletterForm();
+                            }, <?php echo $delay; ?>);
+                        }
+
+                        $('#newsletter_popup_dont_show_again').on('change', function () {
+                            if ($(this).length) {
+                                let checkCookie = $.cookie('newsletter_popup');
+                                if (checkCookie == null || checkCookie === 'shown') {
+                                    $.cookie('newsletter_popup', 'dontShowItAgain');
+                                } else {
+                                    $.cookie('newsletter_popup', 'shown');
+                                    beginNewsletterForm();
+                                }
+                            } else {
+                                $.cookie('newsletter_popup', 'shown');
+                            }
+                        });
+                    }
+
+                    <?php if($popup['enable'] == 1): ?>
+                }
+                <?php endif; ?>
+            });
+
+            function beginNewsletterForm() {
+                $.fancybox({
+                    'padding': '0px',
+                    'autoScale': true,
+                    'transitionIn': 'fade',
+                    'transitionOut': 'fade',
+                    'type': 'inline',
+                    'href': '#newsletter_popup',
+                    'onComplete': function () {
+                        $.cookie('newsletter_popup', 'shown');
+                    },
+                    'tpl': {
+                        closeBtn: '<a title="Close" id="nl_close_btn" class="fancybox-item fancybox-close fancybox-newsletter-close" href="javascript:;"></a>'
+                    },
+                    'helpers': {
+                        overlay: {
+                            locked: false
+                        }
+                    }
+                });
+                $('#newsletter_popup').trigger('click');
+            }
+        });
+    </script>
+    <style>
+        <?php if (isset($popup["custom_style"])) {
+                echo $popup["custom_style"];
+            } ?>
+        #newsletter_popup {
+        <?php if (isset($popup["width"])) {
+                echo "width:".$popup["width"].";";
+            }
+
+            if (isset($popup["height"])) {
+                echo "min-height:".$popup["height"].";";
+            }
+
+            if (isset($popup["bg_image"]) && $popup["bg_image"]) {
+                $folderName = Newsletterbg::UPLOAD_DIR;
+                $path = $folderName . '/' . $popup["bg_image"];
+                $imageUrl = $helper->getBaseUrl() . $path; ?>
+            background-image: url(<?php echo $imageUrl;?>);
+        <?php } ?>
+        }
+    </style>
+
+    <div class="newsletter row no-padding" id="newsletter_popup" style="display: none;">
+        <div class="col-sm-8 pr-lg-4 vc_column_container col-md-7 col-10">
+            <?php if (isset($popup["logo_src"]) && $popup["logo_src"]) {
+                $folderName = Newsletterlogo::UPLOAD_DIR;
+                $path = $folderName . '/' . $popup["logo_src"];
+                $logoUrl = $helper->getBaseUrl() . $path; ?>
+                <div class="text_left mb-4 pb-1">
+                    <img src="<?php echo $logoUrl; ?>" alt="logo"/>
+                </div>
+            <?php } ?>
+            <?php echo $popup["content"]; ?>
+            <form class="form subscribe mb-1" novalidate action="<?php echo $block->getFormActionUrl() ?>"
+                  method="post" data-mage-init='{"validation": {"errorClass": "mage-error"}}' id="newsletter-validate-popup-detail">
+                <div class="field newsletter">
+                    <div class="control">
+                        <input name="email" type="email" placeholder="<?php echo __("Your email address"); ?>"
+                               data-validate="{required:true, 'validate-email':true}"/>
+                    </div>
+                </div>
+                <div class="actions">
+                    <button class="action subscribe primary" id="btn_submit" title="<?php echo __('Submit') ?>" type="submit">
+                        <span><?php echo __('Submit') ?></span>
+                    </button>
+                </div>
+                <div id="show_message"></div>
+            </form>
+            <p class="mb-0">
+                <label class="checkbox checkbox-inline">
+                    <input type="checkbox" id="newsletter_popup_dont_show_again"/><?php echo __("Don't show this popup again"); ?>
+                </label>
+            </p>
+        </div>
+    </div>
+<?php } ?>
